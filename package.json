@@ -1,0 +1,21 @@
+{
+  "name": "rack-visualizer",
+  "version": "1.0.0",
+  "description": "Slotted Angle Rack Visualizer — isometric 2D canvas, draggable shelves, dimension annotations",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "typescript": "~5.7.3",
+    "vite": "^6.3.5",
+    "vue-tsc": "^2.2.8"
+  }
+}
