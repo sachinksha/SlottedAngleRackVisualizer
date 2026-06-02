@@ -72,4 +72,4 @@ src/
 
 ## License
 
-MIT
+GPL 3
