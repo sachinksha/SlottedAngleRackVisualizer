@@ -13,7 +13,11 @@
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
     "@vitejs/plugin-vue": "^5.2.3",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.0",
     "typescript": "~5.7.3",
     "vite": "^6.3.5",
     "vue-tsc": "^2.2.8"

@@ -1,10 +1,10 @@
 <template>
-  <div class="app">
+  <div class="flex flex-col min-h-screen bg-gradient-to-br from-slate-100 to-blue-50">
     <!-- Header -->
-    <header class="app-header">
-      <div class="logo">
-        <div class="logo-icon">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+    <header class="flex items-center gap-3 h-14 px-4 md:px-6 bg-white border-b border-slate-200 shadow-sm">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 bg-blue-700 rounded-md flex items-center justify-center flex-shrink-0">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" role="img" aria-label="Slotted angle rack icon">
             <rect x="2" y="1" width="2" height="14" fill="white" rx="0.5"/>
             <rect x="12" y="1" width="2" height="14" fill="white" rx="0.5"/>
             <rect x="2" y="5" width="12" height="1.5" fill="white" rx="0.5"/>
@@ -12,19 +12,24 @@
           </svg>
         </div>
         <div>
-          <div class="app-title">Rack Visualizer</div>
-          <div class="app-subtitle">Slotted Angle Rack Designer</div>
+          <div class="text-sm font-bold text-slate-800 leading-none">Rack Visualizer</div>
+          <div class="text-xs text-slate-500 mt-0.5">Slotted Angle Rack Designer</div>
         </div>
       </div>
-      <div class="app-hint">Drag shelves on canvas or use inputs · 1" snap increments</div>
+      <div class="hidden sm:block ml-auto text-xs text-slate-400">Drag shelves on canvas or use inputs · 1" snap increments</div>
     </header>
 
     <!-- Main -->
-    <main class="app-main">
-      <div class="canvas-area">
-        <IsometricRack @canvasReady="onCanvasReady" />
+    <main class="flex flex-col lg:flex-row flex-1 min-h-0 gap-4 lg:gap-0 p-4 lg:p-0">
+      <!-- Canvas Area -->
+      <div class="flex-1 lg:overflow-y-auto lg:p-4 flex items-start justify-center order-1 lg:order-none min-h-0">
+        <div class="w-full max-w-xl">
+          <IsometricRack @canvasReady="onCanvasReady" />
+        </div>
       </div>
-      <aside class="sidebar">
+      
+      <!-- Sidebar / Control Panel -->
+      <aside class="w-full lg:w-72 bg-white lg:border-l lg:border-slate-200 lg:overflow-y-auto lg:p-4 lg:shadow-md order-2 lg:order-none">
         <ControlPanel
           @exportJson="handleExportJson"
           @exportPng="handleExportPng"
@@ -95,23 +100,3 @@ function handleExportPdf() {
   win.document.close()
 }
 </script>
-
-<style scoped>
-.app { min-height:100vh; background:linear-gradient(135deg,#f1f5f9 0%,#eff6ff 100%); display:flex; flex-direction:column; }
-
-.app-header {
-  background:#fff; border-bottom:1px solid #e2e8f0; padding:12px 24px;
-  display:flex; align-items:center; gap:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06);
-}
-.logo { display:flex; align-items:center; gap:10px; }
-.logo-icon { width:28px; height:28px; background:#1d4ed8; border-radius:6px; display:flex; align-items:center; justify-content:center; }
-.app-title { font-size:15px; font-weight:700; color:#1e293b; line-height:1; }
-.app-subtitle { font-size:11px; color:#64748b; margin-top:2px; }
-.app-hint { margin-left:auto; font-size:12px; color:#94a3b8; }
-
-.app-main { display:flex; flex:1; min-height:0; }
-.canvas-area { flex:1; overflow:auto; padding:16px; display:flex; align-items:flex-start; justify-content:center; }
-.canvas-area > * { width:100%; max-width:740px; }
-
-.sidebar { width:288px; background:#fff; border-left:1px solid #e2e8f0; overflow-y:auto; padding:16px; box-shadow:-1px 0 4px rgba(0,0,0,0.04); flex-shrink:0; }
-</style>

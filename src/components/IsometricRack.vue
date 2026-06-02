@@ -1,23 +1,35 @@
 <template>
   <canvas
     ref="canvasEl"
-    :width="CANVAS_W"
-    :height="CANVAS_H"
-    class="rack-canvas"
+    :width="canvasWidth"
+    :height="canvasHeight"
+    class="w-full h-auto rounded-lg border border-slate-200 shadow-md touch-none cursor-default block"
+    aria-label="Isometric slotted angle rack visualization. Drag shelves vertically to reposition them."
+    role="img"
     @mousemove="handleMouseMove"
     @mousedown="handleMouseDown"
     @mouseup="handleMouseUp"
     @mouseleave="handleMouseUp"
+    @touchstart="handleTouchStart"
+    @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd"
+    @touchcancel="handleTouchEnd"
   />
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
 import { useRackStore, fmt } from '../stores/rack'
 
 const ISO_ANGLE = Math.PI / 6
 const COS = Math.cos(ISO_ANGLE)
 const SIN = Math.sin(ISO_ANGLE)
+
+// Canvas sizing constants
+const BASE_CANVAS_W = 720
+const BASE_CANVAS_H = 680
+const PAD = 60
+const MAX_CANVAS_W = 720
 
 interface DragState {
   plateId: string
@@ -25,28 +37,73 @@ interface DragState {
   startPosIn: number
 }
 
+interface TouchDragState extends DragState {
+  startX: number
+}
+
 const emit = defineEmits<{ (e: 'canvasReady', el: HTMLCanvasElement | null): void }>()
 
 const store = useRackStore()
 const canvasEl = ref<HTMLCanvasElement | null>(null)
+const containerWidth = ref<number>(0)
 const dragState = ref<DragState | null>(null)
+const touchDragState = ref<TouchDragState | null>(null)
 const hoveredPlate = ref<string | null>(null)
 
-const CANVAS_W = 720
-const CANVAS_H = 680
-const PAD = 60
+// Compute responsive canvas dimensions
+const canvasWidth = computed(() => {
+  const width = Math.min(MAX_CANVAS_W, containerWidth.value)
+  return width > 0 ? width : BASE_CANVAS_W
+})
 
-onMounted(() => emit('canvasReady', canvasEl.value))
-onUnmounted(() => emit('canvasReady', null))
+const canvasHeight = computed(() => {
+  return Math.round((canvasWidth.value * BASE_CANVAS_H) / BASE_CANVAS_W)
+})
 
-// Recompute SC / OX / OY from store dims
+// ResizeObserver to track container width changes
+let resizeObserver: ResizeObserver | null = null
+
+function setupResizeObserver() {
+  if (!canvasEl.value) return
+  resizeObserver = new ResizeObserver(() => {
+    const parent = canvasEl.value?.parentElement
+    if (parent) containerWidth.value = parent.clientWidth
+  })
+  const parent = canvasEl.value.parentElement
+  if (parent) {
+    resizeObserver.observe(parent)
+    containerWidth.value = parent.clientWidth
+  }
+}
+
+function cleanupResizeObserver() {
+  if (resizeObserver) {
+    resizeObserver.disconnect()
+    resizeObserver = null
+  }
+}
+
+onMounted(() => {
+  emit('canvasReady', canvasEl.value)
+  setupResizeObserver()
+  draw()
+})
+
+onUnmounted(() => {
+  emit('canvasReady', null)
+  cleanupResizeObserver()
+})
+
+// Recompute SC / OX / OY from store dims using dynamic canvas size
 function getLayout() {
   const { heightIn, widthIn, depthIn } = store.dimensions
-  const scByH = (CANVAS_H - PAD * 2) / (heightIn + (widthIn + depthIn) * SIN)
-  const scByW = (CANVAS_W - PAD * 2) / ((widthIn + depthIn) * COS)
+  const cw = canvasWidth.value
+  const ch = canvasHeight.value
+  const scByH = (ch - PAD * 2) / (heightIn + (widthIn + depthIn) * SIN)
+  const scByW = (cw - PAD * 2) / ((widthIn + depthIn) * COS)
   const SC = Math.min(4.5, scByH, scByW)
-  const OX = CANVAS_W / 2
-  const OY = CANVAS_H - PAD - (widthIn + depthIn) * SC * SIN
+  const OX = cw / 2
+  const OY = ch - PAD - (widthIn + depthIn) * SC * SIN
   return { SC, OX, OY }
 }
 
@@ -69,19 +126,19 @@ function draw() {
   const pth = store.plateThicknessIn
   const plates = store.sortedPlates
   const unit = store.unit
+  const cw = canvasWidth.value
+  const ch = canvasHeight.value
 
-  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H)
-
-  // Background
+  ctx.clearRect(0, 0, cw, ch)
   ctx.fillStyle = '#f1f5f9'
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+  ctx.fillRect(0, 0, cw, ch)
 
   // Grid
   ctx.save()
   ctx.strokeStyle = '#e2e8f0'
   ctx.lineWidth = 0.5
-  for (let gx = 0; gx < CANVAS_W; gx += 30) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, CANVAS_H); ctx.stroke() }
-  for (let gy = 0; gy < CANVAS_H; gy += 30) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(CANVAS_W, gy); ctx.stroke() }
+  for (let gx = 0; gx < cw; gx += 30) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, ch); ctx.stroke() }
+  for (let gy = 0; gy < ch; gy += 30) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(cw, gy); ctx.stroke() }
   ctx.restore()
 
   function drawFace(pts: [number, number][], fill: string, stroke = '#111827', lw = 0.8) {
@@ -97,12 +154,10 @@ function draw() {
     drawFace([tc(bx,by,0), tc(bx+pt,by,0), tc(bx+pt,by,h), tc(bx,by,h)], '#4b5563', '#111827', 0.7)
     drawFace([tc(bx+pt,by,0), tc(bx+pt,by+pt,0), tc(bx+pt,by+pt,h), tc(bx+pt,by,h)], '#374151', '#111827', 0.7)
     drawFace([tc(bx,by,h), tc(bx+pt,by,h), tc(bx+pt,by+pt,h), tc(bx,by+pt,h)], '#d1d5db', '#111827', 0.7)
-    // Slot holes front
     for (let hz = 2; hz < h - 2; hz += 2) {
       const hx = bx + pt * 0.2
       drawFace([tc(hx,by,hz-0.6), tc(hx+0.5,by,hz-0.6), tc(hx+0.5,by,hz+0.6), tc(hx,by,hz+0.6)], '#1f2937', '#0d1117', 0.4)
     }
-    // Slot holes side
     for (let hz = 2; hz < h - 2; hz += 2) {
       const hy = by + pt * 0.2
       drawFace([tc(bx+pt,hy,hz-0.6), tc(bx+pt,hy+0.5,hz-0.6), tc(bx+pt,hy+0.5,hz+0.6), tc(bx+pt,hy,hz+0.6)], '#111827', '#0d1117', 0.3)
@@ -120,7 +175,6 @@ function draw() {
     drawFace([tc(px0,py0,z), tc(px1,py0,z), tc(px1,py0,zt), tc(px0,py0,zt)], FRONT, '#111827', 0.8)
     drawFace([tc(px1,py0,z), tc(px1,py1,z), tc(px1,py1,zt), tc(px1,py0,zt)], SIDE, '#111827', 0.8)
     drawFace([tc(px0,py0,zt), tc(px1,py0,zt), tc(px1,py1,zt), tc(px0,py1,zt)], TOP, '#111827', 0.8)
-    // Cross bars
     const nb = Math.max(1, Math.floor((px1-px0)/6))
     for (let b = 1; b < nb; b++) {
       const bx = px0 + ((px1-px0)/nb)*b
@@ -133,7 +187,6 @@ function draw() {
       ctx.beginPath(); const [ax,ay]=tc(px0,by2,zt); const [bx2,by22]=tc(px1,by2,zt)
       ctx.moveTo(ax,ay); ctx.lineTo(bx2,by22); ctx.strokeStyle=GRID; ctx.lineWidth=0.5; ctx.stroke()
     }
-    // Drag handle
     const [hcx,hcy] = tc((px0+px1)/2, py0, zt+0.3)
     ctx.beginPath(); ctx.arc(hcx,hcy,hov?6:4,0,Math.PI*2)
     ctx.fillStyle=hov?'#f59e0b':'#d1d5db'; ctx.fill()
@@ -214,7 +267,6 @@ function draw() {
   ctx.restore()
 }
 
-// Hit test
 function getPlateAtPoint(cx: number, cy: number): string | null {
   const { SC, OX, OY } = getLayout()
   const tc = (x: number, y: number, z: number) => toCanvas(x, y, z, SC, OX, OY)
@@ -240,10 +292,12 @@ function pointInPoly(px: number, py: number, poly: [number,number][]): boolean {
   return inside
 }
 
-function getCanvasPos(e: MouseEvent): [number, number] {
+function getCanvasPos(e: MouseEvent | Touch): [number, number] {
   const canvas = canvasEl.value!
   const rect = canvas.getBoundingClientRect()
-  return [(e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height)]
+  const clientX = e instanceof Touch ? e.clientX : e.clientX
+  const clientY = e instanceof Touch ? e.clientY : e.clientY
+  return [(clientX - rect.left) * (canvas.width / rect.width), (clientY - rect.top) * (canvas.height / rect.height)]
 }
 
 function handleMouseMove(e: MouseEvent) {
@@ -272,24 +326,38 @@ function handleMouseDown(e: MouseEvent) {
 
 function handleMouseUp() { dragState.value = null }
 
-// Watch all reactive data for redraw
+function handleTouchStart(e: TouchEvent) {
+  if (e.touches.length !== 1) return
+  const touch = e.touches[0]
+  const [cx, cy] = getCanvasPos(touch)
+  const id = getPlateAtPoint(cx, cy)
+  if (id) {
+    const pl = store.plates.find(p => p.id === id)
+    if (pl) {
+      touchDragState.value = { plateId: id, startX: touch.clientX, startY: touch.clientY, startPosIn: pl.positionIn }
+      e.preventDefault()
+    }
+  }
+}
+
+function handleTouchMove(e: TouchEvent) {
+  if (!touchDragState.value || e.touches.length !== 1) return
+  const touch = e.touches[0]
+  const [, cy] = getCanvasPos(touch)
+  const { SC } = getLayout()
+  const { plateId, startY, startPosIn } = touchDragState.value
+  const inchesPerPx = 1 / (SC * SIN * 2)
+  store.setPlatePosition(plateId, startPosIn - (cy - startY) * inchesPerPx)
+  e.preventDefault()
+}
+
+function handleTouchEnd() {
+  touchDragState.value = null
+}
+
 watch(
-  [() => store.dimensions, () => store.plates, () => store.unit, hoveredPlate],
+  [() => store.dimensions, () => store.plates, () => store.unit, hoveredPlate, canvasWidth, canvasHeight],
   () => draw(),
   { deep: true, immediate: false }
 )
-onMounted(() => draw())
 </script>
-
-<style scoped>
-.rack-canvas {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-  touch-action: none;
-  cursor: default;
-  display: block;
-}
-</style>
