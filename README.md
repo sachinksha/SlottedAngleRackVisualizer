@@ -1,4 +1,4 @@
-# Rack Visualizer
+# Slotted Angle Rack Visualizer
 
 A **Vue 3 + TypeScript** interactive isometric 2D visualizer for **Slotted Angle Racks** — designed for sales, marketing, and rack configuration workflows.
 
