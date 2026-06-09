@@ -192,13 +192,11 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
           <span class="text-xs font-medium text-slate-700">JSON</span>
         </button>
-        <div>
-          <input ref="fileInput" type="file" accept="application/json" @change="handleImportFile" class="hidden" />
-          <button class="flex flex-col items-center gap-2 px-3 py-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition active:scale-95" @click="openFileChooser" title="Import JSON config" aria-label="Import configuration from JSON">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>
-            <span class="text-xs font-medium text-slate-700">Import</span>
-          </button>
-        </div>
+        <input ref="fileInput" type="file" accept="application/json" @change="handleImportFile" class="hidden" />
+        <button class="flex flex-col items-center gap-2 px-3 py-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition active:scale-95" @click="openFileChooser" title="Import JSON config" aria-label="Import configuration from JSON">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>
+          <span class="text-xs font-medium text-slate-700">Import</span>
+        </button>
         <button class="flex flex-col items-center gap-2 px-3 py-3 bg-white border border-slate-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition active:scale-95" @click="$emit('exportPng')" title="Download PNG image" aria-label="Export visualization as PNG image">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
           <span class="text-xs font-medium text-slate-700">PNG</span>
