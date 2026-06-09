@@ -43,6 +43,27 @@ npm run build
 npm run preview
 ```
 
+## Import / Export
+
+The app can export your current configuration as JSON (Export → JSON). You can re-import that JSON later to resume work via the `Import` button in the Export panel.
+
+- The importer validates keys like `dimensions`, `plateCount`, `plates`, `plateThicknessIn`, `floorGapIn`, `stepSizeIn`, and `rotationDeg`.
+- Manual plate positions in the imported file are preserved but will be clamped and snapped to valid slots according to the current `stepSizeIn`.
+
+## Slot Step Size and Shelf Thickness
+
+- `Step size` controls the increments (in inches) used when placing shelves — both in the UI number inputs and when dragging on the canvas. Default `1"`, minimum `0.1"`.
+- If `shelf thickness` is smaller than `step size`, the app treats the thickness as part of the effective step for placement and snapping.
+
+## View Rotation
+
+- The control panel provides a `View rotation` slider (15° increments). Rotation rotates the rack around the vertical axis before projection. If rotation would cause clipping, the canvas layout increases padding heuristically.
+
+## High-DPI / Mobile Rendering
+
+- The canvas now respects `window.devicePixelRatio` and renders at a higher internal resolution for crisp visuals on mobile and high-DPI displays.
+
+
 **Mobile-first Responsive Design:** The layout automatically adapts from vertical stacking on mobile (<768px) to side-by-side on desktop. Open DevTools and test with phone emulator to see responsive breakpoints in action.
 
 ---

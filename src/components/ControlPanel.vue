@@ -22,6 +22,16 @@
       </select>
     </div>
 
+    <!-- Rotation -->
+    <div class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg p-3">
+      <span class="text-sm font-medium text-slate-700">View rotation</span>
+      <div class="flex items-center gap-2 min-w-0">
+        <input type="range" min="0" max="360" :step="15" :value="store.rotationDeg" @input="e => store.setRotationDeg(+((e.target as HTMLInputElement).value))" class="flex-1 min-w-0" aria-label="Rotate view" />
+        <input type="number" :value="store.rotationDeg" min="0" max="360" :step="15" @change="e => store.setRotationDeg(+((e.target as HTMLInputElement).value))" class="w-14 px-2 py-1 text-sm border border-slate-300 rounded-lg bg-white text-slate-800 flex-shrink-0" />
+        <span class="text-xs text-slate-500">deg</span>
+      </div>
+    </div>
+
     <!-- Dimensions -->
     <section class="flex flex-col gap-2">
       <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Rack Dimensions</h3>
@@ -90,7 +100,7 @@
           <div class="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center">{{ idx + 1 }}</div>
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <input type="number" :value="pl.positionIn" :min="store.floorGapIn" :max="store.dimensions.heightIn - store.plateThicknessIn" step="1" @change="e => store.setPlatePosition(pl.id, +((e.target as HTMLInputElement).value))" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
+              <input type="number" :value="pl.positionIn" :min="store.floorGapIn" :max="store.dimensions.heightIn - store.plateThicknessIn" :step="store.stepSizeIn" @change="e => store.setPlatePosition(pl.id, +((e.target as HTMLInputElement).value))" class="w-16 px-2 py-1 text-xs border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition" />
               <span class="text-xs text-slate-500">{{ store.unit === 'in' ? 'in' : store.unit }} from floor</span>
               <span v-if="pl.isManual" class="inline-block px-2 py-0.5 text-xs font-semibold text-orange-700 bg-orange-50 rounded">manual</span>
             </div>
@@ -124,11 +134,46 @@
         </div>
         <div class="flex justify-between items-center pt-2 border-t border-slate-200">
           <span class="text-xs font-medium text-blue-700">Floor clearance</span>
-          <strong class="text-sm text-blue-700">{{ fmt(store.sortedPlates[0]?.positionIn ?? store.floorGapIn, store.unit) }}</strong>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              :value="store.floorGapIn"
+              :min="0"
+              :max="store.dimensions.heightIn - store.plateThicknessIn"
+              :step="store.stepSizeIn"
+              @change="e => store.setFloorGapIn(+((e.target as HTMLInputElement).value))"
+              class="w-20 px-2 py-1 text-sm border border-slate-300 rounded-lg bg-white text-blue-700 font-semibold focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+            />
+            <span class="text-sm text-blue-700">{{ fmt(store.floorGapIn, store.unit) }}</span>
+          </div>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-xs text-slate-600">Shelf thickness</span>
-          <strong class="text-sm text-slate-800">{{ fmt(store.plateThicknessIn, store.unit) }}</strong>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              :value="store.plateThicknessIn"
+              :min="0.1"
+              step="0.1"
+              @change="e => store.setPlateThicknessIn(+((e.target as HTMLInputElement).value))"
+              class="w-20 px-2 py-1 text-sm border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+            />
+            <strong class="text-sm text-slate-800">{{ fmt(store.plateThicknessIn, store.unit) }}</strong>
+          </div>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-xs text-slate-600">Step size (slot increment)</span>
+          <div class="flex items-center gap-2">
+            <input
+              type="number"
+              :value="store.stepSizeIn"
+              :min="0.1"
+              step="0.1"
+              @change="e => store.setStepSizeIn(+((e.target as HTMLInputElement).value))"
+              class="w-20 px-2 py-1 text-sm border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition"
+            />
+            <strong class="text-sm text-slate-800">{{ fmt(store.stepSizeIn, store.unit) }}</strong>
+          </div>
         </div>
         <template v-for="(pl, idx) in store.sortedPlates" :key="pl.id">
           <div v-if="idx < store.sortedPlates.length - 1" class="flex justify-between items-center">
@@ -147,6 +192,13 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
           <span class="text-xs font-medium text-slate-700">JSON</span>
         </button>
+        <div>
+          <input ref="fileInput" type="file" accept="application/json" @change="handleImportFile" class="hidden" />
+          <button class="flex flex-col items-center gap-2 px-3 py-3 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition active:scale-95" @click="openFileChooser" title="Import JSON config" aria-label="Import configuration from JSON">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" x2="12" y1="5" y2="15"/></svg>
+            <span class="text-xs font-medium text-slate-700">Import</span>
+          </button>
+        </div>
         <button class="flex flex-col items-center gap-2 px-3 py-3 bg-white border border-slate-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition active:scale-95" @click="$emit('exportPng')" title="Download PNG image" aria-label="Export visualization as PNG image">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
           <span class="text-xs font-medium text-slate-700">PNG</span>
@@ -162,6 +214,7 @@
 
 <script setup lang="ts">
 import { useRackStore, fmt } from '../stores/rack'
+import { ref } from 'vue'
 
 defineEmits<{
   (e: 'exportJson'): void
@@ -170,4 +223,30 @@ defineEmits<{
 }>()
 
 const store = useRackStore()
+const fileInput = ref<HTMLInputElement | null>(null)
+
+function handleImportFile(e: Event) {
+  const el = e.target as HTMLInputElement
+  const f = el.files?.[0]
+  if (!f) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(String(reader.result))
+      store.importFromJson(obj)
+      // eslint-disable-next-line no-alert
+      alert('Import successful')
+    } catch (err: any) {
+      // minimal user feedback
+      // eslint-disable-next-line no-alert
+      alert('Import failed: ' + (err?.message ?? String(err)))
+    }
+  }
+  reader.readAsText(f)
+  // reset so same file can be re-selected later
+  el.value = ''
+}
+function openFileChooser() {
+  fileInput.value?.click()
+}
 </script>

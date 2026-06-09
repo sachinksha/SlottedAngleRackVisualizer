@@ -60,12 +60,14 @@ function handleExportJson() {
     dimensions: store.dimensions,
     plateCount: store.plateCount,
     plates: store.plates.map(p => ({ id: p.id, positionIn: p.positionIn, isManual: p.isManual })),
-    config: {
-      unit: store.unit,
-      pillarThicknessIn: store.pillarThicknessIn,
-      plateThicknessIn: store.plateThicknessIn,
-      floorGapIn: store.floorGapIn,
-    },
+      config: {
+        unit: store.unit,
+        pillarThicknessIn: store.pillarThicknessIn,
+        plateThicknessIn: store.plateThicknessIn,
+        floorGapIn: store.floorGapIn,
+        stepSizeIn: store.stepSizeIn,
+        rotationDeg: store.rotationDeg,
+      },
   }
   const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)

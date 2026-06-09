@@ -99,24 +99,53 @@ function getLayout() {
   const { heightIn, widthIn, depthIn } = store.dimensions
   const cw = canvasWidth.value
   const ch = canvasHeight.value
-  const scByH = (ch - PAD * 2) / (heightIn + (widthIn + depthIn) * SIN)
-  const scByW = (cw - PAD * 2) / ((widthIn + depthIn) * COS)
-  const SC = Math.min(4.5, scByH, scByW)
+  const rot = ((store.rotationDeg ?? 0) * Math.PI) / 180
+  // heuristic extra padding to avoid clipping when rotated
+  const extraSpan = Math.abs(Math.sin(rot)) * (widthIn + depthIn)
+  const effectivePAD = PAD + extraSpan * 0.5
+  const approxHeightUnits = heightIn + (widthIn + depthIn) * SIN + extraSpan * 0.2
+  const approxWidthUnits = (widthIn + depthIn) * COS + extraSpan * 0.2
+  const scByH = (ch - effectivePAD * 2) / approxHeightUnits
+  const scByW = (cw - effectivePAD * 2) / approxWidthUnits
+  const SC = Math.max(0.2, Math.min(4.5, scByH, scByW))
   const OX = cw / 2
-  const OY = ch - PAD - (widthIn + depthIn) * SC * SIN
+  const OY = ch - effectivePAD - (widthIn + depthIn) * SC * SIN
   return { SC, OX, OY }
 }
 
 function toCanvas(x: number, y: number, z: number, SC: number, OX: number, OY: number): [number, number] {
-  const px = (x - y) * COS * SC
-  const py = -(x + y) * SIN * SC + z * SC
-  return [OX + px, OY - py]
+  try {
+    const rot = ((store.rotationDeg ?? 0) * Math.PI) / 180
+    const rx = x * Math.cos(rot) - y * Math.sin(rot)
+    const ry = x * Math.sin(rot) + y * Math.cos(rot)
+    const px = (rx - ry) * COS * SC
+    const py = -(rx + ry) * SIN * SC + z * SC
+    return [OX + px, OY - py]
+  } catch (err) {
+    // fallback to original isometric projection if rotation fails
+    console.error('Rotation projection failed, falling back to default projection', err)
+    const px = (x - y) * COS * SC
+    const py = -(x + y) * SIN * SC + z * SC
+    return [OX + px, OY - py]
+  }
 }
 
 function draw() {
   const canvas = canvasEl.value
   if (!canvas) return
   const ctx = canvas.getContext('2d')!
+
+  // Improve crispness on high-DPI / mobile devices
+  const dpr = Math.max(1, window.devicePixelRatio || 1)
+  const cssW = canvasWidth.value
+  const cssH = canvasHeight.value
+  if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+    canvas.width = Math.round(cssW * dpr)
+    canvas.height = Math.round(cssH * dpr)
+    canvas.style.width = `${cssW}px`
+    canvas.style.height = `${cssH}px`
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
   const { SC, OX, OY } = getLayout()
   const tc = (x: number, y: number, z: number) => toCanvas(x, y, z, SC, OX, OY)
@@ -356,7 +385,7 @@ function handleTouchEnd() {
 }
 
 watch(
-  [() => store.dimensions, () => store.plates, () => store.unit, hoveredPlate, canvasWidth, canvasHeight],
+  [() => store.dimensions, () => store.plates, () => store.unit, () => store.rotationDeg, hoveredPlate, canvasWidth, canvasHeight],
   () => draw(),
   { deep: true, immediate: false }
 )
