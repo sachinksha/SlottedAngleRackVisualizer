@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, computed } from 'vue'
+import { ref, watch, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useRackStore, fmt } from '../stores/rack'
 
 const ISO_ANGLE = Math.PI / 6
@@ -83,10 +83,13 @@ function cleanupResizeObserver() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick()
   emit('canvasReady', canvasEl.value)
   setupResizeObserver()
-  draw()
+  requestAnimationFrame(() => {
+    draw()
+  })
 })
 
 onUnmounted(() => {
@@ -324,9 +327,12 @@ function pointInPoly(px: number, py: number, poly: [number,number][]): boolean {
 function getCanvasPos(e: MouseEvent | Touch): [number, number] {
   const canvas = canvasEl.value!
   const rect = canvas.getBoundingClientRect()
-  const clientX = e instanceof Touch ? e.clientX : e.clientX
-  const clientY = e instanceof Touch ? e.clientY : e.clientY
-  return [(clientX - rect.left) * (canvas.width / rect.width), (clientY - rect.top) * (canvas.height / rect.height)]
+  const clientX = e.clientX
+  const clientY = e.clientY
+  // Return CSS-space coordinates. The renderer draws in CSS-space
+  // after ctx.setTransform(dpr,...), so hit-testing and drag math
+  // must use the same coordinate system.
+  return [clientX - rect.left, clientY - rect.top]
 }
 
 function handleMouseMove(e: MouseEvent) {
@@ -363,7 +369,7 @@ function handleTouchStart(e: TouchEvent) {
   if (id) {
     const pl = store.plates.find(p => p.id === id)
     if (pl) {
-      touchDragState.value = { plateId: id, startX: touch.clientX, startY: touch.clientY, startPosIn: pl.positionIn }
+      touchDragState.value = { plateId: id, startX: cx, startY: cy, startPosIn: pl.positionIn }
       e.preventDefault()
     }
   }
